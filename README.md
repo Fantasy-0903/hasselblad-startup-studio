@@ -1,5 +1,20 @@
 # Hasselblad Startup Studio
 
+## ⬇️ 下载 macOS 安装包
+
+### [点击下载：macOS Universal 安装包（Intel / Apple Silicon）](https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.1.4-cc.1/hasselblad-startup-studio-0.1.4-cc.1-macOS-Universal.zip)
+
+**macOS 13 及以上 · 功能版本 0.1.4 · 许可更新包 0.1.4-cc.1 · 测试版**
+
+解压 ZIP，将 **X2D Startup Studio.app** 拖入“应用程序”，然后打开即可，无需自行编译或安装 Homebrew。
+[发布说明与 SHA-256](https://github.com/radium-wang/hasselblad-startup-studio/releases/tag/v0.1.4-cc.1)。
+本包未经过 Apple 公证；首次打开如提示开发者无法验证，可按[Apple 官方说明](https://support.apple.com/zh-cn/102445)
+在“系统设置 → 隐私与安全性”中核对 App 名称后允许打开。
+
+仅面向 **第一代 X2D 100C / 907X 与 CFV 100C 原厂 4.2.0**；各机型验证情况见下方“支持与验证”。
+
+---
+
 为第一代 **X2D 100C / 907X 与 CFV 100C 原厂 4.2.0** 更换灰度开机画面的原生 macOS App。
 支持 macOS 13 及以上，Intel 与 Apple Silicon Universal。当前功能版本 **0.1.4**，本分支源码使用 [MIT + Commons Clause 1.0](LICENSE)。
 
@@ -20,7 +35,7 @@
 
 **旧版授权不追溯变更。** 初始提交 `2809b767992db0f3a6ca413a62035bfd79c1219f`、标签 `v0.1.4`
 及已经发布的 0.1.4 源码包仍按原 MIT 许可提供；本次变更不撤销旧副本或其后续合法再分发的 MIT 权利。
-本分支的许可变更不表示既有 App 二进制或旧下载包已被更新；后续分发应以所附许可和对应源码修订为准。
+上方的 `0.1.4-cc.1` 安装包附带完整新许可；旧 `v0.1.4` 下载包保持不变。各下载包以所附许可和对应源码修订为准。
 
 ## 功能
 

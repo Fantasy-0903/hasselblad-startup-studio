@@ -8,13 +8,17 @@ Commons Clause 不适用于这些第三方组件；它们继续遵循各自的�
 | 组件 | 用途与提供方式 |
 | --- | --- |
 | macOS SDK / Swift / clang | 系统框架与编译工具；由开发者自行安装，不随源码包分发 |
-| libusb | App 运行时动态库；由构建者提供，两种 Mac 架构均需包含；保留输入发行版的 COPYING，构建时复制为 `libusb-COPYING.txt` |
+| libusb | App 运行时动态库；由构建者提供，两种 Mac 架构均需包含；保留输入发行版的 COPYING，构建时复制为 `libusb-COPYING.txt`；0.1.4-cc.1 安装包另附 libusb 1.0.30 原始源码与重建说明 |
 | Android platform-tools / adb | 大文件 USB 传输；构建者自行准备可用的 Universal 可执行文件与对应许可文件，许可复制为 `Android-platform-tools.txt`；不随本源码仓库分发 |
 | pyelftools | 本地读取 ELF，依赖版本见 `requirements-dev.txt`；不进入 App |
 | Unicorn | 本地执行实际 ARM64 指令检查；不进入 App |
 
 源码包不含依赖的二进制发行版或厂商固件。重新分发 App 时应保留本项目及实际所用组件的通知，
 并根据所选组件发行版附带其要求的材料；仅包含本项目 LICENSE 文件不能替代组件许可。
+
+`0.1.4-cc.1` 安装包中的 libusb 1.0.30 使用 LGPL 2.1 或后续版本，源码位于安装 ZIP 的
+`第三方源码/libusb-1.0.30.tar.bz2`，重建与替换步骤见同目录说明。本项目不限制为调试修改后的 libusb
+而进行的逆向工程，也不限制 LGPL 授予的 libusb 修改及再分发权利；Commons Clause 仅适用于项目原创部分。
 
 USB 工厂通道来自既有研究：VID `2756`、PID `0009/000A`、接口 3、257 字节帧、command 65、CRC-XMODEM。
 本项目 C 桥接实现和固定合成请求样本曾与同一作者的另一桌面工具纯协议构建函数逐字节比对；
