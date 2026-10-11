@@ -1,5 +1,9 @@
 # Hasselblad Startup Studio
 
+Windows x64 版已移植为 **0.2.0-preview.1 本地测试包**，包含运行时、灰度图片编辑、USB / ADB、首次备份与恢复。
+当前已完成离线验证，真实 Windows 驱动与相机安装 / 恢复尚未验收；暂未公开发布 Windows 安装包。
+详细说明见 [Windows 使用与验证](research/WINDOWS.md)。macOS 发行版保持以下入口。
+
 ## ⬇️ 下载 macOS 安装包
 
 ### [点击下载：macOS Universal 安装包（Intel / Apple Silicon）](https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.1.4-cc.1/hasselblad-startup-studio-0.1.4-cc.1-macOS-Universal.zip)

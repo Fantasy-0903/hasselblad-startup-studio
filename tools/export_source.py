@@ -11,6 +11,7 @@ from check_source import ROOT, audit, source_files
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--version', default='0.1.4', help='源码包版本标记；Windows 测试版可显式指定')
     args = parser.parse_args()
     output = args.output.resolve()
     if output.exists():
@@ -21,7 +22,7 @@ def main():
         destination = output / path.relative_to(ROOT)
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, destination)
-    manifest = dict(project='Hasselblad Startup Studio', version='0.1.4',
+    manifest = dict(project='Hasselblad Startup Studio', version=args.version,
                     license='MIT with Commons Clause 1.0',
                     licenseRevision='commons-clause-1.0',
                     deviceAccessed=False, files=result['files'])
