@@ -20,6 +20,13 @@ jobs:
         run: dotnet build windows/Studio.Tests/Studio.Tests.csproj -c Release --artifacts-path outputs/windows-build
       - name: Execute without camera or proprietary firmware
         run: dotnet outputs/windows-build/bin/Studio.Tests/release/Studio.Tests.dll .
+      - name: Probe actual shipped ADB without selecting real devices
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.2.0-preview.1/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64.zip' -OutFile outputs/shipped-windows.zip
+          if ((Get-FileHash outputs/shipped-windows.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '0a5b834a8eaf6aa94afe8f53b2dcc55d1f8a0c678e13802007b5f86a37ceead4') { throw 'Shipped ZIP checksum mismatch' }
+          Expand-Archive outputs/shipped-windows.zip outputs/shipped-windows
+          ./CodeTests/probe_windows_adb.ps1 -Adb outputs/shipped-windows/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64/Resources/bin/adb.exe
       - name: Publish actual self-contained Windows EXE
         run: dotnet publish windows/Studio.App/Studio.App.csproj -c Release -r win-x64 --self-contained true -p:DebugType=None --artifacts-path outputs/windows-build -o outputs/windows-ci-app
       - name: Start native Windows UI; USB access is blocked
@@ -38,3 +45,4 @@ jobs:
             outputs/windows-tests-windows.json
             outputs/windows-ui-*.png
             outputs/windows-ci-app/smoke-results/
+            outputs/windows-adb-probe/
