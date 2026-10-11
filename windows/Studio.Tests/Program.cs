@@ -136,6 +136,12 @@ static class Tests
                     {
                         var b = r.Baseline; var fixtureLink = new ControllerFixture(stock, adapter, patch, b.CameraModel, b.Variant, b.DisplayKey);
                         var c = new CameraController(fixtureLink, resources, Path.Combine(temp, "Lifecycle-" + Guid.NewGuid().ToString("N"))) { Wait = _ => { } };
+                        Test("controller-adb-start-failure-before-mutation-" + b.CameraModel + "-" + b.DisplayKey, () =>
+                        {
+                            fixtureLink.FailNextRead = true; Reject(() => c.Install(image));
+                            Equal(Check.Hash(fixtureLink.Files[CameraPaths.Library]) == adapter.OriginalSHA256 && fixtureLink.Files.Count == 1 && fixtureLink.Roots.Count == 0 && !Directory.Exists(c.BackupRoot));
+                            Equal(!fixtureLink.Commands.Any(command => command.StartsWith("mount -o remount,rw") || command.StartsWith("nohup sh ")));
+                        });
                         Test("controller-install-replace-restore-" + b.CameraModel + "-" + b.DisplayKey, () =>
                         {
                             c.Install(image); var first = File.ReadAllBytes(Path.Combine(c.Folder(b), "baseline.json"));

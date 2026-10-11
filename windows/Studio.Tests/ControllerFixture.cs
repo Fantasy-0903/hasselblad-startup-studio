@@ -9,6 +9,7 @@ internal sealed class ControllerFixture : IManagedCameraLink
     internal readonly HashSet<string> Roots = [];
     internal readonly List<string> Commands = [];
     internal bool FailNextJob;
+    internal bool FailNextRead;
     internal int Finished;
     public void Finish() => Finished++;
     public void Dispose() { }
@@ -23,7 +24,7 @@ internal sealed class ControllerFixture : IManagedCameraLink
         this.adapter = adapter; this.patch = patch; this.model = model; this.variant = variant; this.key = key;
         Files[CameraPaths.Library] = stock.ToArray();
     }
-    public byte[] ReadFile(string path, int size) { var bytes = Files[path]; Check.That(size == bytes.Length, "Fixture size"); return bytes.ToArray(); }
+    public byte[] ReadFile(string path, int size) { if (FailNextRead) { FailNextRead = false; throw new StudioException("文件传输服务启动失败"); } var bytes = Files[path]; Check.That(size == bytes.Length, "Fixture size"); return bytes.ToArray(); }
     public void WriteFile(byte[] bytes, string path) => Files[path] = bytes.ToArray();
     public string Command(string text, uint timeout = 12000)
     {
