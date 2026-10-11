@@ -1,8 +1,24 @@
 # Hasselblad Startup Studio
 
-Windows x64 版已移植为 **0.2.0-preview.1 本地测试包**，包含运行时、灰度图片编辑、USB / ADB、首次备份与恢复。
-已通过本地离线验证与 Windows 云端原生 EXE / 窗口启动检查；真实 Windows 驱动与相机安装 / 恢复尚未验收，暂未公开发布 Windows 安装包。
-详细说明见 [Windows 使用与验证](research/WINDOWS.md)。macOS 发行版保持以下入口。
+## ⬇️ 下载 Windows 测试版
+
+### [点击下载：Windows x64 测试包](https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.2.0-preview.1/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64.zip)
+
+**0.2.0-preview.1 · Intel / AMD 64 位 · 预发布测试版**
+
+完整解压后运行 **HasselbladStartupStudio.exe**，保持整个文件夹；无需另装 .NET、Python 或开发工具。
+包含灰度图片编辑、原尺寸居中预览、USB / ADB、首次备份与恢复。
+
+由于目前没有可用于实机验收的 Windows 电脑，已通过：
+
+- Windows 云端 129 项检查及真实 EXE、原生窗口启动。
+- 本地 163 项固件离线检查、50 个中断恢复点检查。
+- 最终安装包依赖、许可与隐私检查。
+
+**Windows USB 驱动、连接真实相机及安装／恢复尚未实机验收，所以目前保留为测试版。** 普通版和大地版的首次备份保护均已保留。
+
+Windows 云端执行环境为 Windows Server 2025 x64；上述检查不能代替 Windows 11 / 10 用户电脑的驱动和相机验收。
+[发布说明与 SHA-256](https://github.com/radium-wang/hasselblad-startup-studio/releases/tag/v0.2.0-preview.1) · [Windows 使用与驱动说明](research/WINDOWS.md) · [云端测试记录](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38147836548)。
 
 ## ⬇️ 下载 macOS 安装包
 
@@ -19,8 +35,8 @@ Windows x64 版已移植为 **0.2.0-preview.1 本地测试包**，包含运行�
 
 ---
 
-为第一代 **X2D 100C / 907X 与 CFV 100C 原厂 4.2.0** 更换灰度开机画面的原生 macOS App。
-支持 macOS 13 及以上，Intel 与 Apple Silicon Universal。当前功能版本 **0.1.4**，本分支源码使用 [MIT + Commons Clause 1.0](LICENSE)。
+为第一代 **X2D 100C / 907X 与 CFV 100C 原厂 4.2.0** 更换灰度开机画面的桌面 App。
+macOS 原生版支持 macOS 13 及以上，Intel 与 Apple Silicon Universal，当前功能版本 **0.1.4**；Windows x64 测试版为 **0.2.0-preview.1**。本分支源码使用 [MIT + Commons Clause 1.0](LICENSE)。
 
 导入自己的 PNG／JPEG、选择保留黑边或裁剪、在画布内按原尺寸居中预览，然后通过 USB 安装。
 安装采用 App 独立模式 3，保留原厂普通版／大地版身份和原厂显示键；恢复使用这台相机的首次原厂备份。
