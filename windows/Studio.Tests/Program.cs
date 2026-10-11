@@ -147,7 +147,7 @@ static class Tests
                         });
                     }
                 }
-                if (!OperatingSystem.IsWindows()) TestAdb(temp);
+                if (!OperatingSystem.IsWindows()) TestAdb(temp); else TestWindowsAdb();
                 TestImages(temp, image);
                 TestUi(repo, image, temp, resources, stockPath, adapter, patch);
                 Directory.CreateDirectory(Path.Combine(repo, "outputs"));
@@ -159,6 +159,20 @@ static class Tests
             finally { Directory.Delete(temp, true); }
         }
         catch (Exception e) { Console.Error.WriteLine(e); return 1; }
+    }
+    static void TestWindowsAdb()
+    {
+        var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "Studio.FakeAdb", "release", "Studio.FakeAdb.exe"));
+        Equal(File.Exists(path)); var p = new AdbProcess(path);
+        Test("adb-large-output-no-deadlock", () => Equal(p.Run(["large"], selected: false).Length == 262144));
+        Test("adb-permission-error", () => Reject(() => p.Run(["denied"], selected: false)));
+        Test("adb-client-timeout", () => Reject(() => p.Run(["slow"], 100, false)));
+        Test("adb-argument-unicode-spaces", () => Equal(Encoding.UTF8.GetString(p.Run(["argument", "图片 空格 ' $()"], selected: false)) == "图片 空格 ' $()"));
+        Test("windows-adb-d-argument", () => { p.UsbOnly = true; p.Serial = "ignored-serial"; Equal(Encoding.UTF8.GetString(p.Run(["argument", "physical USB"])) == "physical USB"); });
+        Test("windows-adb-multiple-usb-error", () => Reject(() => p.Run(["many"])));
+        Test("windows-adb-private-client-address", () => { p.ServerPort = 49152; Equal(Encoding.UTF8.GetString(p.Run(["argument"])) == "127.0.0.1:49152"); });
+        Test("owned-adb-server-lifecycle", () => { var server = new OwnedAdbServer(path); var pid = server.ProcessId; Equal(server.Running && server.Port > 1024); server.Dispose(); var exited = false; try { using var process = Process.GetProcessById(pid); exited = process.HasExited; } catch (ArgumentException) { exited = true; } Equal(exited); });
+        Test("owned-adb-start-failure-is-cleaned-up", () => { var before = Environment.GetEnvironmentVariable("STARTUP_STUDIO_FAKE_FAIL"); try { Environment.SetEnvironmentVariable("STARTUP_STUDIO_FAKE_FAIL", "1"); Reject(() => new OwnedAdbServer(path)); } finally { Environment.SetEnvironmentVariable("STARTUP_STUDIO_FAKE_FAIL", before); } });
     }
     [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
     static void TestAdb(string temp)
