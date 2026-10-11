@@ -1,6 +1,6 @@
 # Windows 版使用与验证
 
-0.2.0-preview.1，2026-10-11。本版为 Windows x64 测试包，界面与核心已完整移植。
+0.2.0-preview.2，2026-10-11。本版为 Windows x64 测试包，界面与核心已完整移植。
 包内包含 .NET 10 运行时、libusb 与 ADB；用户不需要安装 Python、.NET 或开发工具。
 Windows 11 的 Intel / AMD 64 位电脑是首轮验收目标。Windows 10、ARM 电脑和实际 Windows 的 USB 驱动尚未验收；不支持 Windows 7 / 8。
 
@@ -42,7 +42,7 @@ Windows ADB 原生后端不提供 Mac 常见的 `usb:` 路径标签；本版使�
 再核对平台、临时传输标识和工厂通道的机型 / 配置指纹，拒绝多 USB 设备和网络连接。
 依据：[Google Windows 后端源码](https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/client/usb_windows.cpp)、[ADB 参数说明](https://android.googlesource.com/platform/packages/modules/adb/+/refs/heads/main/docs/user/adb.1.md)。
 
-本应用启动自己管理的前台 ADB 子进程，服务器与客户端使用同一个 127.0.0.1 私有端口。
+本应用启动自己管理的前台 ADB 子进程，服务器使用 `tcp:localhost:端口`，客户端使用 `-H 127.0.0.1 -P 端口`，共享同一个私有回环端口。
 结束操作时仅停止持有进程句柄的自有子进程，不调用全局 `kill-server`，也不升级 / 关闭已有的其他 ADB 服务。
 若另一工具占用相机接口，应关闭该工具后再使用。
 
@@ -54,6 +54,13 @@ Windows ADB 原生后端不提供 Mac 常见的 `usb:` 路径标签；本版使�
 按加载器设计，完整开机应重新加载菜单；反馈设备上的结果仍待确认。
 不要同时在两个应用内操作同一相机；本应用自身也只允许打开一个实例。
 
+## 0.2.0-preview.2 修复说明
+
+上一版将服务端监听地址写为 `tcp:127.0.0.1:端口`，ADB 以不支持指定主机名为由立即退出，用户看到的“请完整解压”是误导性通用提示。
+已在 Windows 云端用原安装包真实 adb.exe 复现，改用 `tcp:localhost:端口` 后成功。
+新版在准备传输前核对配套 DLL、执行 ADB 版本自检，再通过 ADB 协议确认服务就绪；启动失败记录退出码和分类，不把用户路径或设备标识复制到日志。
+首次读取原库时的传输启动失败在五种基线下均验证为尚未写相机；这项是控制器替身检查，不能代替实机检查。
+
 ## 已测试与待测试
 
 已执行：实际 C# 代码编译、USB 请求与 Mac / C 固定样本逐字节对照、回包解析与超时带数据、短写 / 断开 / 错误拒绝、
@@ -61,13 +68,13 @@ Windows ADB 原生后端不提供 Mac 常见的 `usb:` 路径标签；本版使�
 实际 C# 生成的相机安装 / 恢复脚本在 Mac 临时文件系统执行；涵盖五种机型 / 原厂键基线、连续换图、重复恢复、备份损坏拒绝和 50 个中断恢复点。
 文件哈希 / 权限 / 时间使用真实本地文件；显示服务与 SELinux 标签在此层为替身。
 
-已在 GitHub Windows Server 2025 x64 runner 执行 129 项无厂商固件检查，并实际启动自包含 Windows EXE、渲染原生 Win32 窗口和自动退出。
-最终证据：[Windows 云端测试](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38147836548)。原生窗口测试入口禁止建立 USB 会话；另用无 USB 的 Windows EXE 替身验证生产进程代码的中文参数、超时、输出管道、私有端口及自有进程退出。
+已在 GitHub Windows Server 2025 x64 runner 执行 132 项无厂商固件检查，并实际启动自包含 Windows EXE、渲染原生 Win32 窗口和自动退出。
+最终证据：[Windows 云端测试](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38150327577)。真实包内 ADB 另通过版本启动、生产监听地址、协议响应、私有客户端、空设备列表和自有进程退出检查。原生窗口测试入口禁止建立 USB 会话；另用无 USB 的 Windows EXE 替身验证生产进程代码的中文参数、超时、输出管道、私有端口及自有进程退出。
 尚未执行：真实 WinUSB / ADB 驱动、真实 Windows 相机连接与完整安装 / 恢复、断电 / 断线、CFV / 大地机验收，以及 Windows 11 / 10 消费者电脑验收。
 本机 headless 截图是同一套控件的离线渲染；云端 `native-windows-ui.png` 是 Windows 原生窗口的渲染截图。
 Windows 包只有通过以上验收后才能标记为正式稳定版。
 
-本轮 Mac 主机：163 项带本地原厂输入的 .NET 检查通过；无厂商输入入口另通过 129 项。
+本轮 Mac 主机：171 项带本地原厂输入的 .NET 检查通过；无厂商输入的同一套检查在 Windows 云端通过 132 项。
 15 份 Mac / Windows 实际脚本除空行外逐行一致。发行 ZIP 独立检查涵盖 244 个文件、各 PE 架构、ADB 配套 DLL、运行时、依赖、许可、哈希与隐私边界。
 `.github/workflows/windows-checks.yml` 已在独立 `windows-port-preview` 分支运行通过，可重复执行无厂商固件测试与真正 Win32 窗口启动。
 `--smoke-ui` 测试入口禁止建立 USB 会话，仅生成本机测试图、渲染原生窗口并自动退出；它不是相机安装验收。
