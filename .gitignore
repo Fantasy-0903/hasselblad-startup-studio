@@ -1,0 +1,18 @@
+/outputs/
+/.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+*.dSYM/
+# 原厂／构建二进制与私有验收输入只能留在本地。
+*.cim
+*.so
+*.dylib
+*.o
+*.bin
+*.zip
+*.log
+/inputs/
+/Backups/
+/Diagnostics/
+/private/

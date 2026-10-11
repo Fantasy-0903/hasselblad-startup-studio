@@ -1,0 +1,3 @@
+# 离线适配层构建及实际 ARM64 模拟；不进入 App 运行包。
+pyelftools==0.32
+unicorn==2.1.4
