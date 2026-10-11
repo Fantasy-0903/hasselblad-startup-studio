@@ -1,7 +1,7 @@
 # Hasselblad Startup Studio
 
 Windows x64 版已移植为 **0.2.0-preview.1 本地测试包**，包含运行时、灰度图片编辑、USB / ADB、首次备份与恢复。
-当前已完成离线验证，真实 Windows 驱动与相机安装 / 恢复尚未验收；暂未公开发布 Windows 安装包。
+已通过本地离线验证与 Windows 云端原生 EXE / 窗口启动检查；真实 Windows 驱动与相机安装 / 恢复尚未验收，暂未公开发布 Windows 安装包。
 详细说明见 [Windows 使用与验证](research/WINDOWS.md)。macOS 发行版保持以下入口。
 
 ## ⬇️ 下载 macOS 安装包

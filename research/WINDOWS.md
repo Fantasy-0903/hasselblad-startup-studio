@@ -61,13 +61,15 @@ Windows ADB 原生后端不提供 Mac 常见的 `usb:` 路径标签；本版使�
 实际 C# 生成的相机安装 / 恢复脚本在 Mac 临时文件系统执行；涵盖五种机型 / 原厂键基线、连续换图、重复恢复、备份损坏拒绝和 50 个中断恢复点。
 文件哈希 / 权限 / 时间使用真实本地文件；显示服务与 SELinux 标签在此层为替身。
 
-尚未执行：Windows EXE 启动、真实 WinUSB / ADB 驱动、真实 Windows 相机连接与完整安装 / 恢复、断电 / 断线、CFV / 大地机验收。
-当前没有 Windows 环境。本机 UI 截图是运行同一套控件的离线渲染，不能视为 Windows 系统截图。
+已在 GitHub Windows Server 2025 x64 runner 执行 129 项无厂商固件检查，并实际启动自包含 Windows EXE、渲染原生 Win32 窗口和自动退出。
+最终证据：[Windows 云端测试](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38147836548)。原生窗口测试入口禁止建立 USB 会话；另用无 USB 的 Windows EXE 替身验证生产进程代码的中文参数、超时、输出管道、私有端口及自有进程退出。
+尚未执行：真实 WinUSB / ADB 驱动、真实 Windows 相机连接与完整安装 / 恢复、断电 / 断线、CFV / 大地机验收，以及 Windows 11 / 10 消费者电脑验收。
+本机 headless 截图是同一套控件的离线渲染；云端 `native-windows-ui.png` 是 Windows 原生窗口的渲染截图。
 Windows 包只有通过以上验收后才能标记为正式稳定版。
 
 本轮 Mac 主机：163 项带本地原厂输入的 .NET 检查通过；无厂商输入入口另通过 129 项。
 15 份 Mac / Windows 实际脚本除空行外逐行一致。发行 ZIP 独立检查涵盖 244 个文件、各 PE 架构、ADB 配套 DLL、运行时、依赖、许可、哈希与隐私边界。
-已准备 `.github/workflows/windows-checks.yml`，推送测试分支后可在 Windows runner 执行无厂商固件测试与真正 Win32 窗口启动。
+`.github/workflows/windows-checks.yml` 已在独立 `windows-port-preview` 分支运行通过，可重复执行无厂商固件测试与真正 Win32 窗口启动。
 `--smoke-ui` 测试入口禁止建立 USB 会话，仅生成本机测试图、渲染原生窗口并自动退出；它不是相机安装验收。
 
 ## 从源码构建
