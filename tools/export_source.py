@@ -22,7 +22,9 @@ def main():
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(path, destination)
     manifest = dict(project='Hasselblad Startup Studio', version='0.1.4',
-                    license='MIT', deviceAccessed=False, files=result['files'])
+                    license='MIT with Commons Clause 1.0',
+                    licenseRevision='commons-clause-1.0',
+                    deviceAccessed=False, files=result['files'])
     (output / 'release-source.json').write_text(json.dumps(manifest, indent=2) + '\n')
     audit(output, verify_release=True)
     archive = Path(str(output) + '.zip')
