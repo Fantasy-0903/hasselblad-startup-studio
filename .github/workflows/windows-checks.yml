@@ -27,6 +27,7 @@ jobs:
           if ((Get-FileHash outputs/shipped-windows.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '0a5b834a8eaf6aa94afe8f53b2dcc55d1f8a0c678e13802007b5f86a37ceead4') { throw 'Shipped ZIP checksum mismatch' }
           Expand-Archive outputs/shipped-windows.zip outputs/shipped-windows
           ./CodeTests/probe_windows_adb.ps1 -Adb outputs/shipped-windows/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64/Resources/bin/adb.exe
+          dotnet outputs/windows-build/bin/Studio.Tests/release/Studio.Tests.dll --real-adb-smoke outputs/shipped-windows/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64/Resources/bin/adb.exe
       - name: Publish actual self-contained Windows EXE
         run: dotnet publish windows/Studio.App/Studio.App.csproj -c Release -r win-x64 --self-contained true -p:DebugType=None --artifacts-path outputs/windows-build -o outputs/windows-ci-app
       - name: Start native Windows UI; USB access is blocked

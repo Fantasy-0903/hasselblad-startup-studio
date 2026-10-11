@@ -27,6 +27,7 @@ static class Tests
     {
         try
         {
+            if (args.FirstOrDefault() == "--real-adb-smoke") return RealAdbSmoke(args[1]);
             var repo = Path.GetFullPath(args.Length > 0 ? args[0] : "."); var stockPath = args.Length > 2 ? Path.GetFullPath(args[2]) : null;
             var temp = Path.Combine(Path.GetTempPath(), "startup-win-tests-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(temp);
             var syntheticAdapter = args.Length < 2;
@@ -79,6 +80,9 @@ static class Tests
                 Test("windows-adb-usb-selector", () => Equal(TransportRules.UsbSerial("physical-device\r\n") == "physical-device"));
                 Test("windows-adb-network-selector-refused", () => Reject(() => TransportRules.UsbSerial("192.168.1.2:5555")));
                 Test("windows-adb-unknown-selector-refused", () => Reject(() => TransportRules.UsbSerial("unknown")));
+                Test("adb-startup-missing-dll", () => Equal(AdbStartupFailure.Category(unchecked((int)0xc0000135), "") == "runtime"));
+                Test("adb-startup-unsupported-listener", () => Equal(AdbStartupFailure.Category(1, "listening on specified hostname currently unsupported") == "listener"));
+                Test("adb-startup-no-private-error-leak", () => Equal(!AdbStartupFailure.Message(1, "private-path device-identifier").Contains("private-path") && !AdbStartupFailure.Message(1, "private-path device-identifier").Contains("device-identifier")));
                 var image = new GrayImage(321, 239, Enumerable.Range(0, 321 * 239).Select(i => (byte)(i % 251)).ToArray());
                 Test("gray-roundtrip", () => Equal(GrayImage.Decode(image.Envelope()).Pixels.SequenceEqual(image.Pixels)));
                 Test("gray-max-canvas", () => Equal(new GrayImage(1024, 768, new byte[1024 * 768]).Envelope().Length == 786464));
@@ -187,10 +191,26 @@ static class Tests
         Test("windows-adb-multiple-usb-error", () => Reject(() => p.Run(["many"])));
         Test("windows-adb-private-client-address", () => { p.ServerPort = 49152; Equal(Encoding.UTF8.GetString(p.Run(["argument"])) == "127.0.0.1:49152"); });
         var serverPath = Path.Combine(temp, "fake-server");
-        File.WriteAllText(serverPath, "#!/usr/bin/env python3\nimport socket,sys\nassert sys.argv[1]=='-L' and sys.argv[2].startswith('tcp:127.0.0.1:') and sys.argv[3:]==['nodaemon','server']\ns=socket.socket();s.bind(('127.0.0.1',int(sys.argv[2].rsplit(':',1)[1])));s.listen()\nwhile True:\n c,a=s.accept();c.close()\n");
+        File.WriteAllText(serverPath, "#!/usr/bin/env python3\nimport socket,sys\nassert sys.argv[1]=='-L' and sys.argv[2].startswith('tcp:localhost:') and sys.argv[3:]==['nodaemon','server']\ns=socket.socket();s.bind(('127.0.0.1',int(sys.argv[2].rsplit(':',1)[1])));s.listen()\nwhile True:\n c,a=s.accept()\n with c:\n  b=b''\n  while len(b)<16:\n   p=c.recv(16-len(b))\n   if not p:break\n   b+=p\n  if b==b'000chost:version':c.sendall(b'OKAY00040029')\n");
         File.SetUnixFileMode(serverPath, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
         Test("owned-adb-server-lifecycle", () => { var server = new OwnedAdbServer(serverPath); var pid = server.ProcessId; Equal(server.Running && server.Port > 1024); server.Dispose(); var exited = false; try { using var process = Process.GetProcessById(pid); exited = process.HasExited; } catch (ArgumentException) { exited = true; } Equal(exited); });
         Test("owned-adb-start-failure-is-cleaned-up", () => Reject(() => new OwnedAdbServer(path, 1000)));
+    }
+    static int RealAdbSmoke(string executable)
+    {
+        Equal(OperatingSystem.IsWindows()); executable = Path.GetFullPath(executable);
+        var version = Encoding.UTF8.GetString(new AdbProcess(executable).Run(["version"], selected: false)); Equal(version.Contains("Android Debug Bridge version"));
+        var diagnostics = new List<string>(); int pid, port;
+        using (var server = new OwnedAdbServer(executable, diagnostic: diagnostics.Add, deviceFilter: "startup-studio-offline-no-device"))
+        {
+            pid = server.ProcessId; port = server.Port; Equal(server.Running);
+            var client = new AdbProcess(executable) { ServerPort = server.Port };
+            var list = Encoding.UTF8.GetString(client.Run(["devices"], selected: false)); Equal(list.Trim() == "List of devices attached");
+        }
+        var gone = false; try { using var process = Process.GetProcessById(pid); gone = process.HasExited; } catch (ArgumentException) { gone = true; } Equal(gone);
+        Directory.CreateDirectory("outputs/windows-adb-probe");
+        File.WriteAllText("outputs/windows-adb-probe/production-result.json", JsonSerializer.Serialize(new { passed = true, realBundledAdb = true, productionServer = true, protocolReady = true, processExited = gone, port, deviceAccessed = false, cameraTested = false, diagnostics }));
+        Console.WriteLine("PASS real bundled Windows ADB: version, production listener, private client, no devices, owned process exit"); return 0;
     }
     static void TestImages(string temp, GrayImage image)
     {

@@ -9,7 +9,7 @@ if (args.Length == 4 && args[0] == "-L" && args[2] == "nodaemon" && args[3] == "
     if (Environment.GetEnvironmentVariable("STARTUP_STUDIO_FAKE_FAIL") == "1") return 1;
     var port = int.Parse(args[1].Split(':')[^1]);
     using var listener = new TcpListener(IPAddress.Loopback, port); listener.Start();
-    while (true) { using var client = listener.AcceptTcpClient(); }
+    while (true) { using var client = listener.AcceptTcpClient(); using var stream = client.GetStream(); var request = new byte[16]; stream.ReadExactly(request); if (Encoding.ASCII.GetString(request) == "000chost:version") stream.Write(Encoding.ASCII.GetBytes("OKAY00040029")); }
 }
 if (args.Length >= 4 && args[0] == "-H") { Console.Write(args[1] + ":" + args[3]); return 0; }
 if (args.Length > 0 && args[0] == "-d") args = args[1..];

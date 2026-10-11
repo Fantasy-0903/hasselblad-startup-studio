@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>HasselbladStartupStudio</AssemblyName>
     <Version>0.2.0</Version>
+    <InformationalVersion>0.2.0-preview.2</InformationalVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <PublishTrimmed>false</PublishTrimmed>

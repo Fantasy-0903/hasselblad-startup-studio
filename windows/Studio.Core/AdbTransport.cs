@@ -28,6 +28,7 @@ public sealed class AdbProcess(string executable)
         var bytes = output.GetAwaiter().GetResult(); var error = Encoding.UTF8.GetString(errors.GetAwaiter().GetResult()).ToLowerInvariant();
         if (task.ExitCode != 0)
         {
+            if (task.ExitCode < 0) throw new StudioException(AdbStartupFailure.Message(task.ExitCode, error));
             if (error.Contains("permission denied")) throw new StudioException("文件传输被相机权限拒绝，安装未继续。");
             if (error.Contains("more than one device") || error.Contains("more than one emulator")) throw new StudioException("检测到多台 USB 设备，请只保留这台相机后重试。");
             if (error.Contains("no devices") || error.Contains("device not found") || error.Contains("device offline")) throw new StudioException("文件传输时相机连接已断开，请唤醒后重新检测。");
@@ -59,7 +60,11 @@ public sealed class ManagedCameraLink : IManagedCameraLink
         fingerprint = Fingerprint(this); model = Identify(this); Check.That(Check.IsHash(fingerprint), "无法确认相机身份。");
         var config = Command("getprop sys.usb.config");
         Check.That(config is "rndis,mass_storage,bulk,acm" or "rndis,mass_storage,bulk,acm,adb", "当前 USB 模式不受支持，安装尚未开始。"); originalUsb = config;
-        log("正在准备文件传输通道"); server = new OwnedAdbServer(executable);
+        log("正在准备文件传输通道");
+        foreach (var name in new[] { "AdbWinApi.dll", "AdbWinUsbApi.dll" }) Check.That(File.Exists(Path.Combine(Path.GetDirectoryName(executable)!, name)), "内置文件传输组件缺失：" + name + "。安装尚未开始，请完整解压安装包。");
+        var version = new AdbProcess(executable).Run(["version"], 10000, false);
+        Check.That(Encoding.UTF8.GetString(version).Contains("Android Debug Bridge version"), "内置 ADB 版本自检未通过，安装尚未开始。");
+        server = new OwnedAdbServer(executable, diagnostic: trace);
         var process = new AdbProcess(executable) { UsbOnly = true, ServerPort = server.Port };
         if (!config.Split(',').Contains("adb"))
         {
