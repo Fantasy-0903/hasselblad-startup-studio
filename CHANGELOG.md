@@ -1,5 +1,10 @@
 # 更新记录
 
+## Documentation update — Community discussion and contributions (2026-10-12)
+
+- Replace fundraising entry points with invitations to discuss findings, open Issues and submit Pull Requests. This is a documentation-only update; published application packages and license terms are unchanged.
+- 将项目入口改为欢迎交流、通过 Issue 反馈问题与建议，以及提交 PR 改进代码、文档和测试；仅更新文档，已发布软件包与许可条款不变。
+
 ## 0.1.4-cc.1 — 2026-10-11
 
 - 首次提供可直接解压使用的 macOS Universal App 安装包；README 顶部增加直接下载入口、安装步骤与发布说明。

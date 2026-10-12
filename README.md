@@ -1,5 +1,11 @@
 # Hasselblad Startup Studio
 
+## 欢迎交流 / Discussion and contributions
+
+欢迎交流、分享研究发现和使用反馈。欢迎通过 [Issues](https://github.com/radium-wang/hasselblad-startup-studio/issues) 讨论问题与建议，也欢迎提交 [Pull Requests](https://github.com/radium-wang/hasselblad-startup-studio/pulls) 改进代码、文档和测试。
+
+Discussion, research findings and feedback are welcome. Please use [Issues](https://github.com/radium-wang/hasselblad-startup-studio/issues) for questions and suggestions, and submit [Pull Requests](https://github.com/radium-wang/hasselblad-startup-studio/pulls) to improve code, documentation and tests.
+
 ## ⬇️ 下载 macOS 安装包
 
 ### [点击下载：macOS Universal 安装包（Intel / Apple Silicon）](https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.1.4-cc.1/hasselblad-startup-studio-0.1.4-cc.1-macOS-Universal.zip)
