@@ -4,10 +4,12 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+using System.Reflection;
 namespace StartupStudio;
 
 public sealed class StudioWindow : Window
 {
+    private static readonly string BuildVersion = typeof(StudioWindow).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "测试版";
     public readonly Button Connect = new() { Content = "连接相机", Name = "Connect", Padding = new Thickness(18, 10) };
     public readonly Button Import = new() { Content = "导入图片…", Name = "Import", HorizontalAlignment = HorizontalAlignment.Stretch, Padding = new Thickness(12) };
     public readonly Button Install = new() { Content = "安装自定义画面", Name = "Install", Padding = new Thickness(20, 12) };
@@ -37,7 +39,7 @@ public sealed class StudioWindow : Window
     public StudioWindow()
     {
         LinkFactory = (log, trace) => new ManagedCameraLink(ResourcesPath, log, trace);
-        Title = "Hasselblad Startup Studio · Windows"; Width = 1260; Height = 800; MinWidth = 1080; MinHeight = 640;
+        Title = "Hasselblad Startup Studio · Windows " + BuildVersion; Width = 1260; Height = 800; MinWidth = 1080; MinHeight = 640;
         Background = new SolidColorBrush(Color.Parse("#F3F4F6")); FontFamily = new FontFamily("Microsoft YaHei UI, PingFang SC, sans-serif"); FontSize = 14;
         var layout = new Grid { RowDefinitions = new("Auto,Auto,*,Auto"), Margin = new Thickness(28), RowSpacing = 18 };
         var heading = new Grid { ColumnDefinitions = new("*,Auto") };
@@ -56,7 +58,7 @@ public sealed class StudioWindow : Window
         Mode.SelectionChanged += (_, _) => { Editor.Active = Mode.SelectedIndex == 1 && !busy; UpdatePreview(); };
         Editor.Changed = _ => UpdatePreview(); reset.Click += (_, _) => { if (source != null) Editor.Crop = new(0, 0, source.Width, source.Height); UpdatePreview(); };
         Closing += (_, e) => { if (busy) { e.Cancel = true; Status.Text = "操作进行中，请等待备份及 USB 状态核对完成。"; } };
-        Log("已准备好，请连接相机"); UpdateButtons();
+        Log(BuildVersion + " · 已准备好，请连接相机"); UpdateButtons();
     }
     public void SetImage(GrayImage image, string name)
     {

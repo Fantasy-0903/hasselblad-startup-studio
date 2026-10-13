@@ -10,7 +10,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.2.0-preview.2'
+VERSION = '0.2.0-preview.3'
 
 
 def pe_machine(path):
@@ -24,6 +24,7 @@ def pe_machine(path):
 def package(args):
     output = args.output.resolve()
     assert not output.exists(), 'Choose a new output directory'
+    assert f'<InformationalVersion>{VERSION}</InformationalVersion>' in (ROOT / 'windows/Studio.App/Studio.App.csproj').read_text(), 'Package / application version mismatch'
     adapter = json.loads((args.adapter / 'adapter.json').read_text())
     assert adapter['mode'] == 3 and adapter['originalSHA256'] == 'a0ac02a51d87d08fa61fd0d1e79af15db248af4b5b32603b9483d09f9b7f6217'
     assert adapter['adapterSHA256'] == 'a2edfe28ad8dbf91ed19fb87526cc6eceb21ceb00a40347ee58e9afaec6929e0'
