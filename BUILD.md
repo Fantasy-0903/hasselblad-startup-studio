@@ -1,5 +1,8 @@
 # 独立构建与离线验证
 
+Windows 0.2.0-preview.1 的完整构建、驱动与测试边界见 [Windows 文档](research/WINDOWS.md)。
+Windows 使用 .NET 10 / Avalonia，沿用同一模式 3 相机适配层与恢复记录格式。
+
 所有命令从本项目根目录运行。Python 3.11+；macOS 编译需要 Xcode Command Line Tools、Swift 和 clang。
 下列默认构建与测试 **不连接或修改相机**。
 

@@ -60,7 +60,19 @@ class SourceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 audit(root)
             (root / 'tools/input.so').unlink()
-            (root / 'tools/link.py').symlink_to(root / 'README.md')
+
+    def test_source_symlink_rejection(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            for name in ROOT_FILES:
+                (root / name).write_text('test\n')
+            (root / 'tools').mkdir()
+            try:
+                (root / 'tools/link.py').symlink_to(root / 'README.md')
+            except OSError as error:
+                if sys.platform == 'win32' and getattr(error, 'winerror', None) == 1314:
+                    self.skipTest('Windows symlink privilege unavailable; other audit rejection cases still run')
+                raise
             with self.assertRaises(ValueError):
                 audit(root)
 

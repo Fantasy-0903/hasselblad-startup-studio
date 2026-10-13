@@ -1,0 +1,49 @@
+name: Windows offline checks
+on:
+  push:
+    paths: ['windows/**', 'CodeTests/**', '.github/workflows/windows-checks.yml']
+  pull_request:
+    paths: ['windows/**', 'CodeTests/**', '.github/workflows/windows-checks.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Compile production code and offline tests
+        run: dotnet build windows/Studio.Tests/Studio.Tests.csproj -c Release --artifacts-path outputs/windows-build
+      - name: Execute without camera or proprietary firmware
+        run: dotnet outputs/windows-build/bin/Studio.Tests/release/Studio.Tests.dll .
+      - name: Probe actual shipped ADB without selecting real devices
+        shell: pwsh
+        run: |
+          Invoke-WebRequest 'https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.2.0-preview.1/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64.zip' -OutFile outputs/shipped-windows.zip
+          if ((Get-FileHash outputs/shipped-windows.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne '0a5b834a8eaf6aa94afe8f53b2dcc55d1f8a0c678e13802007b5f86a37ceead4') { throw 'Shipped ZIP checksum mismatch' }
+          Expand-Archive outputs/shipped-windows.zip outputs/shipped-windows
+          ./CodeTests/probe_windows_adb.ps1 -Adb outputs/shipped-windows/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64/Resources/bin/adb.exe
+          dotnet outputs/windows-build/bin/Studio.Tests/release/Studio.Tests.dll --real-adb-smoke outputs/shipped-windows/Hasselblad-Startup-Studio-0.2.0-preview.1-Windows-x64/Resources/bin/adb.exe
+      - name: Publish actual self-contained Windows EXE
+        run: dotnet publish windows/Studio.App/Studio.App.csproj -c Release -r win-x64 --self-contained true -p:DebugType=None --artifacts-path outputs/windows-build -o outputs/windows-ci-app
+      - name: Start native Windows UI; USB access is blocked
+        shell: pwsh
+        run: |
+          $p = Start-Process outputs/windows-ci-app/HasselbladStartupStudio.exe -ArgumentList '--smoke-ui' -PassThru
+          if (-not $p.WaitForExit(45000)) { $p.Kill(); throw 'Native UI startup timed out' }
+          if ($p.ExitCode -ne 0) { throw "Native UI exited: $($p.ExitCode)" }
+          $result = Get-Content outputs/windows-ci-app/smoke-results/result.json | ConvertFrom-Json
+          if (-not $result.passed -or $result.deviceAccessed) { throw 'Invalid startup evidence' }
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-offline-evidence
+          path: |
+            outputs/windows-tests-windows.json
+            outputs/windows-ui-*.png
+            outputs/windows-ci-app/smoke-results/
+            outputs/windows-adb-probe/

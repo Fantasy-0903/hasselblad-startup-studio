@@ -8,8 +8,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 ROOT_FILES = {'README.md', 'LICENSE', '.gitignore', 'AGENTS.md', 'CONTRIBUTING.md',
               'SECURITY.md', 'THIRD_PARTY_NOTICES.md', 'CHANGELOG.md', 'BUILD.md', 'requirements-dev.txt'}
-SOURCE_DIRS = {'native', 'tools', 'CodeTests', 'research', '.github'}
-SUFFIXES = {'.swift', '.c', '.h', '.S', '.py', '.md', '.txt', '.json', '.yml', '.yaml'}
+SOURCE_DIRS = {'native', 'tools', 'CodeTests', 'research', '.github', 'windows'}
+SUFFIXES = {'.swift', '.c', '.h', '.S', '.py', '.md', '.txt', '.json', '.yml', '.yaml', '.cs', '.csproj', '.manifest', '.props', '.ps1'}
 IGNORED = {'outputs', '__pycache__', '.venv', '.git', 'inputs', '.DS_Store'}
 PRIVATE_PATTERNS = [
     r'/Users/[A-Za-z0-9_.-]+/', r'/home/[A-Za-z0-9_.-]+/',

@@ -1,6 +1,6 @@
 # 依赖、许可与来源
 
-本分支项目原创 Swift、C、汇编、Python 源码及文档使用 [MIT + Commons Clause 1.0](LICENSE)。
+本分支项目原创 Swift、C、C#、汇编、Python 源码及文档使用 [MIT + Commons Clause 1.0](LICENSE)。
 两部分共同构成许可；商业场景自用与收费限制、旧版 MIT 授权边界见 [README](README.md#许可与收费边界)。
 本许可不授予相机厂商固件、商标、用户图片或另行提供的第三方组件的权利。
 Commons Clause 不适用于这些第三方组件；它们继续遵循各自的许可。
@@ -12,6 +12,15 @@ Commons Clause 不适用于这些第三方组件；它们继续遵循各自的�
 | Android platform-tools / adb | 大文件 USB 传输；构建者自行准备可用的 Universal 可执行文件与对应许可文件，许可复制为 `Android-platform-tools.txt`；不随本源码仓库分发 |
 | pyelftools | 本地读取 ELF，依赖版本见 `requirements-dev.txt`；不进入 App |
 | Unicorn | 本地执行实际 ARM64 指令检查；不进入 App |
+| .NET 10 | Windows 自包含运行时；MIT 与对应第三方通知，通知随 Windows 包提供 |
+| Avalonia 12.1.4 | Windows 界面与离线控件测试；MIT，通知随 Windows 包提供 |
+| SkiaSharp 3.119.4 / Skia | Windows 图片解码、灰度 PNG 与绘制；相应 MIT / BSD 等通知随包提供 |
+| HarfBuzzSharp 8.3.1.3 / HarfBuzz | 文字排版；相应通知随 Windows 包提供 |
+| ANGLE | Windows 图形后端；对应 BSD 及第三方通知随包提供 |
+
+Windows 0.2.0-preview.1 使用官方 libusb 1.0.29 MinGW64 DLL，动态加载并可替换。
+包内 `Licenses` 包含 LGPL 通知、对应 libusb 原始源码与重建说明；应用许可不限制修改 libusb 后的调试、替换或 LGPL 权利。
+Windows ADB 37.0.1 与两个匹配 DLL 来自官方 platform-tools，同目录保留其完整 NOTICE。
 
 源码包不含依赖的二进制发行版或厂商固件。重新分发 App 时应保留本项目及实际所用组件的通知，
 并根据所选组件发行版附带其要求的材料；仅包含本项目 LICENSE 文件不能替代组件许可。

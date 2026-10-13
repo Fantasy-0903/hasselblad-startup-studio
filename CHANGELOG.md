@@ -1,9 +1,39 @@
 # 更新记录
 
+## Windows 未发布 — 2026-10-13
+
+- 工厂接口出现晚于 ADB 接口时，按已有超时边界等待重连并继续验证 USB 原状态；不再把临时未登记当作立即失败。
+- 已实测的工厂接口 GUID 仍优先使用；若当前驱动登记了其他接口 GUID，则从 Windows 接口类中查找对应 VID/PID 与 MI_03，再由 WinUSB 核对接口描述和固定端点。新增不依赖固定 GUID 的离线选择检查；其他驱动配置的实机兼容性仍待验收。
+- 修复 ADB 运行时无法重新打开工厂接口的问题：Windows libusb 组合设备打开会尝试打开 ADB 已占用的 MI_06；对已登记的 Hasselblad 工厂接口改为直接打开 WinUSB MI_03，核对单相机、接口、alternate 与固定 bulk 端点。
+- USB 切换后等待 Windows 接口登记再启动私有 ADB；重新打开 libusb 路径时使用独立上下文。恢复先释放自有 ADB，再验证原设备身份、有限重试并同时确认配置与实际状态。
+- 界面保留首个操作失败及收尾失败，避免重复收尾；操作已核验完成但 USB 收尾未确认时明确显示两者，并禁止继续安装直到重新检测。
+- 离线 ADB 入口在有受支持相机连接时拒绝运行，不再把 `--one-device` 当作硬件隔离保证；测试截图输出目录在首次运行时创建。
+- Windows 148 项无硬件检查、原生窗口启动通过；一台 X2D 上工厂接口与 ADB 共存和固定 getprop 只读通信通过。完整安装、换图、恢复及 CFV/大地机仍待实机验收，证据边界见 [WinUSB 验证摘要](research/WINDOWS_WINUSB.md)。
+- 本次修订在 macOS 交叉编译无警告，150 项合成数据／替身离线检查及源码隐私检查通过；新增 Windows 接口类枚举的云端检查，真实不同 GUID 的驱动仍待用户设备验收。
+
 ## Documentation update — Community discussion and contributions (2026-10-12)
 
 - Replace fundraising entry points with invitations to discuss findings, open Issues and submit Pull Requests. This is a documentation-only update; published application packages and license terms are unchanged.
 - 将项目入口改为欢迎交流、通过 Issue 反馈问题与建议，以及提交 PR 改进代码、文档和测试；仅更新文档，已发布软件包与许可条款不变。
+
+## Windows 0.2.0-preview.2 — 2026-10-11
+
+- 修复内置 ADB 使用不受支持的数值 IP 监听地址立即退出的问题；服务端改用 localhost，客户端仍使用同一私有回环端口。
+- 启动前检查配套 DLL、实际运行 ADB 版本自检；通过 ADB 协议响应确认服务就绪，失败显示退出码与分类，不再统一误报“请完整解压”。
+- Windows 云端 132 项检查、真实包内 ADB 的生产服务启动 / 协议 / 私有客户端 / 退出检查及原生 EXE 窗口启动通过。此前 129 项检查没有覆盖真实包内 ADB 服务启动，现已补上。
+- 本地带原厂输入的 171 项离线检查通过，新增五种基线下的传输启动失败不写入相机检查；安装 / 恢复脚本及原厂备份保护未改变，原 50 个中断恢复点证据继续适用。
+- Windows 真实驱动、相机安装 / 恢复仍待用户实机验收，本版保持预发布测试版。
+
+## Windows 0.2.0-preview.1 — 2026-10-11
+
+- 提供 GitHub Windows x64 预发布测试包、校验文件与独立源码包；README 与发布说明明确标注没有本地 Windows 电脑、云端 / 离线通过项目和仍待实机验收的 USB 驱动及安装 / 恢复。
+- 新增 .NET 10 / Avalonia 12.1.4 的 Windows x64 自包含版；导入灰度、裁剪、原尺寸居中预览、简洁日志、安装与恢复功能完整移植。
+- Windows 使用动态 libusb 工厂接口与内置 ADB 大文件传输；保留模式 3、固定原厂哈希、机型 / 原厂键门禁、首次备份不可覆盖与事务恢复。
+- 与 Mac 共用绘图适配层；15 份实际生成脚本除空行外逐行一致。五种基线的实际脚本在临时本地文件系统通过连续安装、恢复及 50 处中断恢复。
+- 163 项带实际固件的 Mac 主机离线检查通过；无厂商固件入口另通过 129 项。涵盖生产控制器与 UI 按钮流程、真实 JPEG 方向解码、USB 字节、原厂恢复保护及自有 ADB 子进程退出。
+- Windows ADB 使用 `-d` 选择唯一物理 USB，避免依赖 Windows 原生后端缺失的 `usb:` 标签；自有前台 ADB 与客户端绑定相同私有回环端口，不关闭其他应用的服务器。
+- 检测扩展菜单保护记录并明确提示完整关机再开机，不删除其他工具包的保护记录。
+- GitHub Windows Server 2025 x64 上129 项检查及自包含 Windows EXE 原生窗口启动通过；未访问真实相机、真实 WinUSB / ADB 驱动尚未验收，测试包不能视为正式稳定版。Mac 源码与运行流程未改动。
 
 ## 0.1.4-cc.1 — 2026-10-11
 
