@@ -128,3 +128,4 @@ public interface IFileCameraLink : ICameraLink
     void WriteFile(byte[] bytes, string path);
 }
 public interface IManagedCameraLink : IFileCameraLink, IDisposable { void Finish(); }
+public interface IUsbCameraLink : ICameraLink, IDisposable { }

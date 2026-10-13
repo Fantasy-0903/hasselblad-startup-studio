@@ -1,6 +1,11 @@
 param([Parameter(Mandatory=$true)][string]$Adb)
 $ErrorActionPreference = 'Stop'
 $Adb = (Resolve-Path $Adb).Path
+# Interface filtering is not a hardware-isolation guarantee on every Windows
+# ADB backend. Refuse this offline entry even before a camera exposes ADB.
+if (Get-PnpDevice -PresentOnly -ErrorAction Stop | Where-Object InstanceId -Match '^USB\\VID_2756&PID_000[9A]\\') {
+    throw 'Disconnect supported cameras before the offline ADB probe; --one-device alone is not hardware isolation.'
+}
 $folder = 'outputs/windows-adb-probe'
 New-Item -ItemType Directory -Force $folder | Out-Null
 $results = @()

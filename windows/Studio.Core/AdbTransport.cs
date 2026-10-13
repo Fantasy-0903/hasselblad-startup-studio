@@ -50,31 +50,39 @@ public sealed class ManagedCameraLink : IManagedCameraLink
         executable = Path.Combine(resources, "bin", "adb.exe"); this.log = log; this.trace = trace; usb = new(trace);
     }
     public string Command(string text, uint timeout = 12000) => (usb ?? throw new StudioException("USB 会话已断开，请重新检测相机。")).Command(text, timeout);
-    private static string Identify(ICameraLink link) => Models.Detect(link.Command("getprop ro.product.device"), link.Command("getprop hbl.usb_pid"), link.Command("getprop hbl.usb_prod_name"), link.ProductId);
-    private static string Fingerprint(ICameraLink link) => link.Command("sha256sum /factory_data/settings.ini").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
+    private static string Identify(ICameraLink link, uint timeout = 12000) => Models.Detect(link.Command("getprop ro.product.device", timeout), link.Command("getprop hbl.usb_pid", timeout), link.Command("getprop hbl.usb_prod_name", timeout), link.ProductId);
+    private static string Fingerprint(ICameraLink link, uint timeout = 12000) => link.Command("sha256sum /factory_data/settings.ini", timeout).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "";
     private void CloseUsb() { usb?.Dispose(); usb = null; }
     private AdbProcess Prepare()
     {
         if (adb != null) { Check.That(server?.Running == true, "本应用文件传输服务已退出，请重新检测。"); return adb; }
         Check.That(File.Exists(executable), "内置 ADB 缺失，安装尚未开始，请完整解压安装包。");
         fingerprint = Fingerprint(this); model = Identify(this); Check.That(Check.IsHash(fingerprint), "无法确认相机身份。");
+        var productId = usb!.ProductId!.Value;
         var config = Command("getprop sys.usb.config");
         Check.That(config is "rndis,mass_storage,bulk,acm" or "rndis,mass_storage,bulk,acm,adb", "当前 USB 模式不受支持，安装尚未开始。"); originalUsb = config;
         log("正在准备文件传输通道");
         foreach (var name in new[] { "AdbWinApi.dll", "AdbWinUsbApi.dll" }) Check.That(File.Exists(Path.Combine(Path.GetDirectoryName(executable)!, name)), "内置文件传输组件缺失：" + name + "。安装尚未开始，请完整解压安装包。");
         var version = new AdbProcess(executable).Run(["version"], 10000, false);
         Check.That(Encoding.UTF8.GetString(version).Contains("Android Debug Bridge version"), "内置 ADB 版本自检未通过，安装尚未开始。");
-        server = new OwnedAdbServer(executable, diagnostic: trace);
-        var process = new AdbProcess(executable) { UsbOnly = true, ServerPort = server.Port };
+        var process = new AdbProcess(executable) { UsbOnly = true };
         if (!config.Split(',').Contains("adb"))
         {
             switched = true;
             try { Command("/system/bin/toybox nohup /system/bin/sh -c 'sleep 1;setprop sys.usb.config none;sleep 1;setprop sys.usb.config rndis,mass_storage,bulk,acm,adb' >/dev/null 2>&1 &", 5000); }
             catch (StudioException e) when (e.Message.Contains("LIBUSB_ERROR_NO_DEVICE") || e.Message.Contains("LIBUSB_ERROR_TIMEOUT")) { /* Delayed gadget switch can disconnect after acceptance. */ }
         }
-        CloseUsb(); var timer = Stopwatch.StartNew();
+        // Initialize ADB's Windows backend only after the new interface is present.
+        // Release the previous libusb session before Windows re-enumerates it.
+        CloseUsb(); var timer = Stopwatch.StartNew(); string? lastReconnect = null;
         while (timer.ElapsedMilliseconds < 40000)
         {
+            if (server == null)
+            {
+                if (!WindowsAdbInterface.Present(productId)) { Thread.Sleep(250); continue; }
+                trace("Windows ADB interface registered; starting private server");
+                server = new OwnedAdbServer(executable, diagnostic: trace); process.ServerPort = server.Port;
+            }
             Check.That(server.Running, "本应用文件传输服务已退出，请重新检测。");
             // The Windows native backend registers USB transports without a devpath,
             // so devices -l need not contain usb:. Let ADB itself enforce USB-only selection.
@@ -87,18 +95,26 @@ public sealed class ManagedCameraLink : IManagedCameraLink
                 var adbPlatform = Encoding.UTF8.GetString(process.Run(["shell", "getprop ro.product.device"], 5000)).Trim();
                 Check.That(adbPlatform == "eagle2_ec1706_native", "物理 USB 文件传输设备不是支持的相机。");
                 UsbLink fresh;
-                try { fresh = new(trace); } catch (StudioException) { Thread.Sleep(250); continue; }
+                try { fresh = new(trace); }
+                catch (StudioException e) when (UsbStateRecovery.Transient(e.Message))
+                {
+                    var category = UsbStateRecovery.Category(e.Message);
+                    if (category != lastReconnect) { trace("Factory USB reconnect category=" + category + " detail=" + e.Message); lastReconnect = category; }
+                    Thread.Sleep(250); continue;
+                }
                 try
                 {
                     Check.That(Identify(fresh) == model && Fingerprint(fresh) == fingerprint, "文件传输通道对应的相机发生变化，已停止操作。");
-                    Check.That(fresh.Command("getprop sys.usb.state").Split(',').Contains("adb"), "文件传输通道尚未生效。");
+                    if (!fresh.Command("getprop sys.usb.state").Split(',').Contains("adb")) { fresh.Dispose(); Thread.Sleep(250); continue; }
                 }
+                catch (StudioException e) when (UsbStateRecovery.Transient(e.Message)) { fresh.Dispose(); Thread.Sleep(250); continue; }
                 catch { fresh.Dispose(); throw; }
                 usb = fresh; adb = process; log("文件传输通道已就绪"); return process;
             }
             Thread.Sleep(250);
         }
-        throw new StudioException("等待文件传输通道超时，请检查 Windows ADB 接口驱动后重新检测。");
+        trace("Transfer preparation timeout; adbInterface=" + WindowsAdbInterface.Present(productId) + " factoryReconnect=" + (lastReconnect ?? "not-attempted"));
+        throw new StudioException(server == null ? "Windows ADB 接口尚未出现，安装尚未开始；请检查接口驱动后重新检测。" : lastReconnect != null ? "文件传输准备超时：工厂 USB 接口重新连接失败，安装尚未开始。请完整关机再开机后重新检测。" : "等待文件传输通道超时，安装尚未开始；请检查 Windows ADB 接口驱动后重新检测。");
     }
     private static string TempFolder()
     {
@@ -133,23 +149,12 @@ public sealed class ManagedCameraLink : IManagedCameraLink
     {
         if (!switched || originalUsb == null) { adb = null; CloseUsb(); StopServer(); return; }
         log("正在恢复相机 USB 连接状态");
-        var restore = "/system/bin/toybox nohup /system/bin/sh -c 'sleep 1;setprop sys.usb.config none;sleep 1;setprop sys.usb.config " + originalUsb + "' >/dev/null 2>&1 &";
-        var sent = false;
-        if (usb != null) { try { Check.That(Fingerprint(usb) == fingerprint && Identify(usb) == model, "相机身份变化，禁止修改另一台相机的 USB 状态。"); usb.Command(restore, 5000); sent = true; } catch (StudioException) { /* Reopen and check identity before retry. */ } }
-        adb = null; CloseUsb(); StopServer(); var timer = Stopwatch.StartNew();
-        while (timer.ElapsedMilliseconds < 25000)
-        {
-            UsbLink fresh; try { fresh = new(trace); } catch (StudioException) { Thread.Sleep(250); continue; }
-            using (fresh)
-            {
-                Check.That(Fingerprint(fresh) == fingerprint && Identify(fresh) == model, "相机身份变化，已停止 USB 状态恢复。");
-                var config = fresh.Command("getprop sys.usb.config"); var state = fresh.Command("getprop sys.usb.state");
-                if (config == originalUsb && state == originalUsb) { switched = false; log("USB 连接状态已恢复"); return; }
-                if (!sent && config == "rndis,mass_storage,bulk,acm,adb") { try { fresh.Command(restore, 5000); sent = true; } catch (StudioException e) when (e.Message.Contains("LIBUSB_ERROR_NO_DEVICE") || e.Message.Contains("LIBUSB_ERROR_TIMEOUT")) { sent = true; } }
-            }
-            Thread.Sleep(250);
-        }
-        throw new StudioException("USB 原状态恢复未确认；请完整关机再开机后重新检测。");
+        // Release the private ADB endpoints before reopening the WinUSB composite.
+        // Confirmation must use a fresh USB context and the original device identity.
+        adb = null; CloseUsb(); StopServer();
+        UsbStateRecovery.Restore(originalUsb, () => new UsbLink(trace), link =>
+            Check.That(Fingerprint(link, 2000) == fingerprint && Identify(link, 2000) == model, "相机身份变化，已停止 USB 状态恢复。"), trace);
+        switched = false; log("USB 连接状态已恢复");
     }
     private void StopServer() { var own = server; server = null; own?.Dispose(); }
     public void Dispose() { CloseUsb(); StopServer(); }

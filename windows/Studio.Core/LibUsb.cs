@@ -10,6 +10,7 @@ internal static class NativeUsb
         NativeLibrary.SetDllImportResolver(typeof(NativeUsb).Assembly, (name, _, _) => name == Library ? NativeLibrary.Load(Path.Combine(AppContext.BaseDirectory, "libusb-1.0.dll")) : IntPtr.Zero);
     }
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int libusb_init(out IntPtr context);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void libusb_exit(IntPtr context);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern nint libusb_get_device_list(IntPtr context, out IntPtr list);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern void libusb_free_device_list(IntPtr list, int unref);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)] internal static extern int libusb_get_device_descriptor(IntPtr device, [Out] byte[] descriptor);
@@ -34,10 +35,13 @@ internal static class NativeUsb
     [StructLayout(LayoutKind.Sequential)] internal struct Alt { internal byte Length, Type, Number, Alternate, Endpoints, Class, SubClass, Protocol, Index; internal IntPtr Endpoint, Extra; internal int ExtraLength; }
     [StructLayout(LayoutKind.Sequential)] internal struct Endpoint { internal byte Length, Type, Address, Attributes; internal ushort Packet; internal byte Interval, Refresh, Synch; internal IntPtr Extra; internal int ExtraLength; }
 }
-public sealed class UsbLink : ICameraLink, IDisposable
+public sealed class UsbLink : IUsbCameraLink
 {
-    private static readonly Lazy<IntPtr> Context = new(() => { NativeUsb.Require(NativeUsb.libusb_init(out var c), "初始化"); return c; });
+    // Windows changes the composite interface set when ADB is enabled. A reopened
+    // session must enumerate with a fresh context instead of keeping the old topology.
+    private IntPtr context;
     private IntPtr handle; private bool claimed;
+    private WinUsbFactory? factory;
     private readonly Action<string> trace;
     public ushort? ProductId { get; private set; }
     public UsbLink(Action<string>? trace = null)
@@ -48,7 +52,20 @@ public sealed class UsbLink : ICameraLink, IDisposable
     }
     private void Open()
     {
-        var count = NativeUsb.libusb_get_device_list(Context.Value, out var list); if (count < 0) NativeUsb.Require((int)count, "设备枚举");
+        if (WinUsbFactory.Available)
+        {
+            factory = new WinUsbFactory(); ProductId = factory.ProductId;
+            trace("工厂 WinUSB 会话已打开：仅接口3，OUT 0x04 / IN 0x85；ADB 接口独立"); return;
+        }
+        // A Windows composite libusb open grabs other WinUSB interfaces too.
+        // Avoid that path while ADB is exposed if a targeted factory path is absent.
+        Check.That(!WindowsAdbInterface.Present(9) && !WindowsAdbInterface.Present(10), "工厂 WinUSB 接口未就绪，无法与 ADB 同时访问；请检查相机工厂接口驱动后重新检测。");
+        OpenLibusb();
+    }
+    private void OpenLibusb()
+    {
+        if (context == IntPtr.Zero) NativeUsb.Require(NativeUsb.libusb_init(out context), "初始化");
+        var count = NativeUsb.libusb_get_device_list(context, out var list); if (count < 0) NativeUsb.Require((int)count, "设备枚举");
         Check.That(count <= 1024, "USB 设备列表异常。");
         try
         {
@@ -92,9 +109,9 @@ public sealed class UsbLink : ICameraLink, IDisposable
     }
     private string Send(string command, uint timeout)
     {
-        Check.That(handle != IntPtr.Zero && timeout > 0, "USB 会话已断开。");
+        Check.That((factory != null || handle != IntPtr.Zero) && timeout > 0, "USB 会话已断开。");
         var cookie = BitConverter.ToUInt32(RandomNumberGenerator.GetBytes(4)); if (cookie == 0) cookie = 1;
-        return UsbExchange.Send(new NativeBulk(handle), command, cookie, timeout, trace);
+        return UsbExchange.Send(factory ?? (IUsbBulk)new NativeBulk(handle), command, cookie, timeout, trace);
     }
     public string Command(string text, uint timeout = 12000)
     {
@@ -104,7 +121,16 @@ public sealed class UsbLink : ICameraLink, IDisposable
             trace("只读检查重开 USB 会话后重试一次"); Dispose(); Open(); return Send(text, timeout);
         }
     }
-    public void Dispose() { if (handle == IntPtr.Zero) return; if (claimed) NativeUsb.libusb_release_interface(handle, 3); NativeUsb.libusb_close(handle); handle = IntPtr.Zero; claimed = false; }
+    public void Dispose()
+    {
+        factory?.Dispose(); factory = null;
+        if (handle != IntPtr.Zero)
+        {
+            if (claimed) NativeUsb.libusb_release_interface(handle, 3);
+            NativeUsb.libusb_close(handle); handle = IntPtr.Zero; claimed = false;
+        }
+        if (context != IntPtr.Zero) { NativeUsb.libusb_exit(context); context = IntPtr.Zero; }
+    }
     private sealed class NativeBulk(IntPtr handle) : IUsbBulk
     {
         public BulkResult Transfer(byte endpoint, byte[] bytes, uint timeout) => new(NativeUsb.libusb_bulk_transfer(handle, endpoint, bytes, bytes.Length, out var transferred, timeout), transferred);

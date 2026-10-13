@@ -6,6 +6,8 @@
 
 **0.2.0-preview.2 · Intel / AMD 64 位 · 预发布测试版**
 
+本分支新增尚未发布的 Windows 工厂 WinUSB / ADB 共存修复与收尾状态改进。上方下载链接仍是已发布的 preview.2；新源码的只读实机验证、148 项离线检查及完整安装/恢复的未验收范围见 [WinUSB 验证摘要](research/WINDOWS_WINUSB.md)。
+
 本版修复了上一版内置 ADB 监听地址导致的启动失败，并补充真实内置 ADB 的生产启动回归。
 
 完整解压后运行 **HasselbladStartupStudio.exe**，保持整个文件夹；无需另装 .NET、Python 或开发工具。
