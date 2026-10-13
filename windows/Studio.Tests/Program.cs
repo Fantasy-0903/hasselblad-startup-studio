@@ -29,6 +29,7 @@ static class Tests
         {
             if (args.FirstOrDefault() == "--real-adb-smoke") return RealAdbSmoke(args[1]);
             var repo = Path.GetFullPath(args.Length > 0 ? args[0] : "."); var stockPath = args.Length > 2 ? Path.GetFullPath(args[2]) : null;
+            Directory.CreateDirectory(Path.Combine(repo, "outputs"));
             var temp = Path.Combine(Path.GetTempPath(), "startup-win-tests-" + Guid.NewGuid().ToString("N")); Directory.CreateDirectory(temp);
             var syntheticAdapter = args.Length < 2;
             var resources = syntheticAdapter ? Path.Combine(temp, "synthetic-resources") : Path.GetFullPath(args[1]);
@@ -158,6 +159,7 @@ static class Tests
                     }
                 }
                 if (!OperatingSystem.IsWindows()) TestAdb(temp); else TestWindowsAdb();
+                UsbRecoveryChecks.Run(Test);
                 TestImages(temp, image);
                 TestUi(repo, image, temp, resources, stockPath, adapter, patch);
                 Directory.CreateDirectory(Path.Combine(repo, "outputs"));
@@ -205,6 +207,7 @@ static class Tests
     static int RealAdbSmoke(string executable)
     {
         Equal(OperatingSystem.IsWindows()); executable = Path.GetFullPath(executable);
+        Check.That(WindowsAdbInterface.SupportedDeviceCount == 0, "真实 ADB 离线检查前必须断开相机；不能只依赖 --one-device 过滤隔离真实硬件。");
         var version = Encoding.UTF8.GetString(new AdbProcess(executable).Run(["version"], selected: false)); Equal(version.Contains("Android Debug Bridge version"));
         var diagnostics = new List<string>(); int pid, port;
         using (var server = new OwnedAdbServer(executable, diagnostic: diagnostics.Add, deviceFilter: "startup-studio-offline-no-device"))
@@ -254,6 +257,31 @@ static class Tests
         Test("ui-real-controls-render", () => { window.Width = 1260; window.Height = 800; window.Show(); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); using var frame = window.CaptureRenderedFrame(); Equal(frame != null); frame!.Save(Path.Combine(repo, "outputs", "windows-ui-preview.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default); });
         Test("ui-small-window-layout", () => { window.Width = 1080; window.Height = 640; Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); var bottom = window.Install.TranslatePoint(new Point(0, window.Install.Bounds.Height), window); Equal(bottom != null && bottom.Value.Y <= window.Bounds.Height - 20 && window.Preview.Bounds.Height >= 160); using var frame = window.CaptureRenderedFrame(); Equal(frame != null); frame!.Save(Path.Combine(repo, "outputs", "windows-ui-small.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default); });
         Test("ui-friendly-errors", () => Equal(!StudioWindow.FriendlyFailure("LIBUSB_ERROR_TIMEOUT").Contains("LIBUSB") && StudioWindow.FriendlyFailure("LIBUSB_ERROR_IO\n自动恢复未确认").Contains("保留电脑备份")));
+        Test("ui-preserves-first-failure-with-cleanup-failure", () =>
+        {
+            var text = StudioWindow.FriendlyFailure("等待文件传输通道超时，安装尚未开始。\n收尾失败：USB 原状态恢复未确认");
+            Equal(text.StartsWith("等待文件传输通道超时") && text.Contains("另外") && text.Contains("USB 连接状态"));
+            Equal(StudioWindow.FriendlyFailure("等待文件传输通道超时\nUSB 原状态恢复未确认").StartsWith("等待文件传输通道超时"));
+        });
+        Test("ui-completed-install-is-distinct-from-cleanup-failure", () =>
+        {
+            Equal(StudioWindow.CompletionStatus(1, "普通版", "USB 原状态恢复未确认").StartsWith("安装完成；USB"));
+            Equal(StudioWindow.CompletionStatus(2, "大地版", "USB 原状态恢复未确认").StartsWith("已恢复大地版原厂画面；USB"));
+        });
+        void PumpOffline(Task task) { while (!task.IsCompleted) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(2); } task.GetAwaiter().GetResult(); Dispatcher.UIThread.RunJobs(); }
+        window.ResourcesPath = resources; window.BackupRoot = Path.Combine(temp, "CleanupBackup"); window.DiagnosticsRoot = Path.Combine(temp, "CleanupLogs");
+        Test("ui-finishes-once-and-retains-completed-inspection", () =>
+        {
+            var link = new CleanupFixture(false); window.LinkFactory = (_, _) => link;
+            PumpOffline(window.Perform(0));
+            Equal(link.Finished == 1 && window.Status.Text!.StartsWith("相机检查完成；USB") && !window.Install.IsEnabled && window.Connect.IsEnabled);
+        });
+        Test("ui-operation-and-cleanup-failures-remain-visible", () =>
+        {
+            var link = new CleanupFixture(true); window.LinkFactory = (_, _) => link;
+            PumpOffline(window.Perform(0));
+            Equal(link.Finished == 1 && window.Status.Text!.StartsWith("等待文件传输通道超时") && window.Status.Text.Contains("USB 连接状态") && !window.Install.IsEnabled);
+        });
         if (stockPath != null)
         {
             var fixture = new ControllerFixture(File.ReadAllBytes(stockPath), adapter, patch, Models.X2D, 2, "KEY=Mg==\nRC=0");
@@ -268,6 +296,16 @@ static class Tests
         window.Close();
     }
     sealed class NeverUsb : ICameraLink { public ushort? ProductId => null; public string Command(string text, uint timeout = 12000) => throw new Exception("Unexpected device access in offline test"); }
+    sealed class CleanupFixture(bool failOperation) : IManagedCameraLink
+    {
+        readonly SnapshotLink snapshot = new(); public int Finished;
+        public ushort? ProductId => snapshot.ProductId;
+        public string Command(string text, uint timeout = 12000) => failOperation ? throw new StudioException("等待文件传输通道超时，安装尚未开始。") : snapshot.Command(text, timeout);
+        public byte[] ReadFile(string path, int size) => throw new Exception("Unexpected file read");
+        public void WriteFile(byte[] bytes, string path) => throw new Exception("Unexpected file write");
+        public void Finish() { Finished++; throw new StudioException("USB 原状态恢复未确认"); }
+        public void Dispose() { }
+    }
     sealed class FakeBulk(byte[] response, int readCode = 0) : IUsbBulk
     {
         bool sent, delivered; public int ReadSize; public int WriteLength = 257, WriteCode;

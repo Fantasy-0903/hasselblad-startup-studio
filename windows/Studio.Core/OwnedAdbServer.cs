@@ -10,6 +10,8 @@ public sealed class OwnedAdbServer : IDisposable
     public int Port { get; }
     public int ProcessId { get; }
     public bool Running => !task.HasExited;
+    // Keep the original compiled application's two-argument constructor compatible.
+    public OwnedAdbServer(string executable, int timeout) : this(executable, timeout, null, null) { }
     public OwnedAdbServer(string executable, int timeout = 10000, Action<string>? diagnostic = null, string? deviceFilter = null)
     {
         using (var reservation = new TcpListener(IPAddress.Loopback, 0)) { reservation.Start(); Port = ((IPEndPoint)reservation.LocalEndpoint).Port; }

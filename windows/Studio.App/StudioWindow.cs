@@ -108,6 +108,7 @@ public sealed class StudioWindow : Window
                 var dir = DiagnosticsRoot; Directory.CreateDirectory(dir);
                 using var diagnostic = new StreamWriter(Path.Combine(dir, "session-" + Guid.NewGuid().ToString("N") + ".log")); diagnostic.AutoFlush = true;
                 using var link = LinkFactory(Log, text => diagnostic.WriteLine(DateTime.Now.ToString("O") + " " + text));
+                var finishAttempted = false;
                 try
                 {
                     var c = new CameraController(link, ResourcesPath, BackupRoot);
@@ -122,11 +123,15 @@ public sealed class StudioWindow : Window
                         catch (StudioException) { currentText = "自定义设置异常 · 原厂回退"; }
                     }
                     else if (r != null) currentText = "原厂画面 · 待清理安装记录";
-                    link.Finish(); return (s, r, currentText, guard);
+                    string? cleanupFailure = null; finishAttempted = true;
+                    try { link.Finish(); }
+                    catch (StudioException finish) { cleanupFailure = finish.Message; diagnostic.WriteLine("操作已完成；收尾失败：" + finish.Message); }
+                    return (s, r, currentText, guard, cleanupFailure);
                 }
                 catch (Exception e)
                 {
-                    var message = e.Message; try { link.Finish(); } catch (Exception finish) { message += "\n" + finish.Message; }
+                    var message = e.Message;
+                    if (!finishAttempted) { finishAttempted = true; try { link.Finish(); } catch (Exception finish) { message += "\n收尾失败：" + finish.Message; } }
                     diagnostic.WriteLine(message); throw new StudioException(message);
                 }
             }).ConfigureAwait(false);
@@ -134,9 +139,9 @@ public sealed class StudioWindow : Window
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 device.Text = (result.s.CameraModel == Models.Cfv ? "907X / CFV 100C" : "X2D 100C") + " · " + result.s.Edition; current.Text = result.currentText;
-                ready = true; canRestore = result.r != null; Connect.Content = "重新检测"; progress.Value = 1;
-                Status.Text = operation == 0 ? "相机检查完成" : operation == 1 ? "安装完成，请完整关机再开机确认画面" : "已恢复" + result.s.Edition + "原厂画面，请完整关机再开机";
-                note.Text = result.guard ? "扩展菜单每次开机只加载一次；换图或恢复后，需要完整关机再开机。" : "首次原厂备份已保留；重复换图不会覆盖首次备份。"; Log("完成：" + Status.Text);
+                ready = result.cleanupFailure == null; canRestore = result.r != null; Connect.Content = "重新检测"; progress.Value = 1;
+                Status.Text = CompletionStatus(operation, result.s.Edition, result.cleanupFailure);
+                note.Text = result.guard ? "扩展菜单每次开机只加载一次；换图或恢复后，需要完整关机再开机。" : "首次原厂备份已保留；重复换图不会覆盖首次备份。"; Log((result.cleanupFailure == null ? "完成：" : "操作完成，收尾待确认：") + Status.Text);
             });
         }
         catch (Exception e)
@@ -148,6 +153,12 @@ public sealed class StudioWindow : Window
     }
     public static string FriendlyFailure(string message)
     {
+        const string cleanup = "\n收尾失败：";
+        var split = message.IndexOf(cleanup, StringComparison.Ordinal);
+        if (split > 0) return FriendlyFailure(message[..split]) + "\n另外，" + FriendlyFailure(message[(split + cleanup.Length)..]);
+        // Older logs have no separator. Keep their first failure visible too.
+        var legacySplit = message.IndexOf("\nUSB 原状态恢复未确认", StringComparison.Ordinal);
+        if (legacySplit > 0) return FriendlyFailure(message[..legacySplit]) + "\n另外，" + FriendlyFailure(message[(legacySplit + 1)..]);
         if (message.Contains("自动恢复未确认")) return "安装未完成，自动恢复尚未确认。请保留电脑备份，重新连接相机后使用恢复按钮。";
         if (message.Contains("USB 原状态恢复未确认")) return "USB 连接状态恢复尚未确认，请完整关机再开机后重新检测。";
         if (message.Contains("LIBUSB_ERROR_ACCESS") || message.Contains("LIBUSB_ERROR_NOT_SUPPORTED") || message.Contains("LIBUSB_ERROR_NOT_FOUND")) return "工厂 USB 接口驱动未就绪，请查看包内 Windows 驱动说明。";
@@ -157,5 +168,11 @@ public sealed class StudioWindow : Window
         if (message.Contains("LIBUSB_ERROR_IO")) return "USB 传输中断，请检查连接后重新检测。";
         if (message.Contains("libusb-1.0.dll") || message.Contains("startup-libusb")) return "内置 USB 依赖未能加载，请完整解压整个安装包后重试。";
         return message;
+    }
+    public static string CompletionStatus(int operation, string edition, string? cleanupFailure)
+    {
+        var completed = operation == 0 ? "相机检查完成" : operation == 1 ? "安装完成" : "已恢复" + edition + "原厂画面";
+        if (cleanupFailure != null) return completed + "；" + FriendlyFailure(cleanupFailure);
+        return operation == 0 ? completed : completed + (operation == 1 ? "，请完整关机再开机确认画面" : "，请完整关机再开机");
     }
 }
