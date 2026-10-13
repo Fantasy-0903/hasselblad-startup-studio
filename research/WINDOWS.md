@@ -27,7 +27,7 @@ Windows 11 的 Intel / AMD 64 位电脑是首轮验收目标。Windows 10、ARM 
 
 ## Windows USB 驱动
 
-当前源码新增针对已登记 Hasselblad 工厂接口的 WinUSB 直接路径，只打开 MI_03，避免与 ADB 的 MI_06 发生组合设备打开冲突。接口描述、单相机和固定端点均需校验通过；驱动不会被自动更换。只读实机验证与未完成的完整操作验收见 [WinUSB 验证摘要](WINDOWS_WINUSB.md)。
+当前源码新增针对已登记工厂接口的 WinUSB 直接路径，只打开 MI_03，避免与 ADB 的 MI_06 发生组合设备打开冲突。优先使用已实测的接口 GUID，其他已登记的接口 GUID 也可被发现；接口描述、单相机和固定端点均需校验通过。工厂接口短暂未就绪时按超时边界等待重连；驱动不会被自动更换。只读实机验证与未完成的完整操作验收见 [WinUSB 验证摘要](WINDOWS_WINUSB.md)。
 
 应用使用相机的工厂 bulk 接口 3（OUT 0x04 / IN 0x85）执行命令；大文件使用临时 ADB。
 Windows 必须能通过 WinUSB / libusb 支持的驱动访问该工厂接口，并为出现的 ADB 接口加载对应驱动。

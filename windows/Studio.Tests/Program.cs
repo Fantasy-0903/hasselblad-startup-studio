@@ -208,6 +208,7 @@ static class Tests
     {
         Equal(OperatingSystem.IsWindows()); executable = Path.GetFullPath(executable);
         Check.That(WindowsAdbInterface.SupportedDeviceCount == 0, "真实 ADB 离线检查前必须断开相机；不能只依赖 --one-device 过滤隔离真实硬件。");
+        Check.That(WindowsAdbInterface.RegisteredInterfaceClasses().Any(), "Windows 设备接口类枚举不可用。");
         var version = Encoding.UTF8.GetString(new AdbProcess(executable).Run(["version"], selected: false)); Equal(version.Contains("Android Debug Bridge version"));
         var diagnostics = new List<string>(); int pid, port;
         using (var server = new OwnedAdbServer(executable, diagnostic: diagnostics.Add, deviceFilter: "startup-studio-offline-no-device"))

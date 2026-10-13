@@ -19,6 +19,8 @@ public static class WindowsAdbInterface
     [DllImport("setupapi.dll")]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool SetupDiDestroyDeviceInfoList(IntPtr set);
+    [DllImport("cfgmgr32.dll")]
+    private static extern int CM_Enumerate_Classes(uint index, out Guid classGuid, uint flags);
 
     public static bool Matches(string path, ushort productId) =>
         productId is 9 or 10 && path.Contains("#vid_2756&pid_" + productId.ToString("x4") + "&mi_06#", StringComparison.OrdinalIgnoreCase);
@@ -30,9 +32,38 @@ public static class WindowsAdbInterface
         productId is 9 or 10 && path.Contains("#vid_2756&pid_" + productId.ToString("x4") + "&mi_03#", StringComparison.OrdinalIgnoreCase);
     public static bool SupportedDevicePath(string path) => new[] { "#vid_2756&pid_0009#", "#vid_2756&pid_000a#" }.Any(value => path.Contains(value, StringComparison.OrdinalIgnoreCase));
     public static int SupportedDeviceCount => Paths(DeviceClassId).Count(SupportedDevicePath);
-    internal static (string Path, ushort ProductId)[] FactoryPaths() => Paths(FactoryClassId)
+    internal static (string Path, ushort ProductId)[] FactoryPaths()
+    {
+        // The observed factory GUID is fast, but a valid WinUSB installation can
+        // register another interface GUID. Search registered interface classes only
+        // when that path is absent; WinUsbFactory still verifies MI_03 and endpoints.
+        var preferred = SelectFactoryPaths(Paths(FactoryClassId));
+        if (preferred.Length != 0) return preferred;
+        if (SupportedDeviceCount == 0) return [];
+        var found = new List<(string Path, ushort ProductId)>();
+        foreach (var guid in RegisteredInterfaceClasses())
+        {
+            if (guid == FactoryClassId || guid == ClassId || guid == DeviceClassId) continue;
+            found.AddRange(SelectFactoryPaths(Paths(guid)));
+        }
+        return found.DistinctBy(item => item.Path, StringComparer.OrdinalIgnoreCase).ToArray();
+    }
+    public static (string Path, ushort ProductId)[] SelectFactoryPaths(IEnumerable<string> paths) => paths
         .Select(path => (Path: path, ProductId: (ushort)(MatchesFactory(path, 9) ? 9 : MatchesFactory(path, 10) ? 10 : 0)))
         .Where(item => item.ProductId != 0).ToArray();
+    public static IEnumerable<Guid> RegisteredInterfaceClasses()
+    {
+        Check.That(OperatingSystem.IsWindows(), "USB 接口枚举仅支持 Windows。");
+        for (uint index = 0; index < 65536; index++)
+        {
+            var result = CM_Enumerate_Classes(index, out var guid, 1);
+            if (result == 0x25) yield break; // CR_NO_SUCH_VALUE
+            if (result == 0x1f) continue; // CR_INVALID_DATA: an empty class entry
+            Check.That(result == 0, "Windows USB 接口类枚举失败。");
+            yield return guid;
+        }
+        throw new StudioException("Windows USB 接口类列表异常。");
+    }
     private static string[] Paths(Guid guid)
     {
         Check.That(OperatingSystem.IsWindows(), "USB 接口枚举仅支持 Windows。");

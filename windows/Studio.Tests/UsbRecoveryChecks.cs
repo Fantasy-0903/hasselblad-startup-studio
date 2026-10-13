@@ -25,6 +25,28 @@ static class UsbRecoveryChecks
             Require(!WindowsAdbInterface.MatchesFactory(@"\\?\usb#vid_2756&pid_0009&mi_06#device#{guid}", 9));
             Require(!WindowsAdbInterface.MatchesFactory(@"\\?\usb#vid_2756&pid_000a&mi_03#device#{guid}", 9));
         });
+        test("winusb-factory-selection-does-not-depend-on-interface-guid", () =>
+        {
+            var selected = WindowsAdbInterface.SelectFactoryPaths([
+                @"\\?\usb#vid_2756&pid_0009&mi_03#device#{another-guid}",
+                @"\\?\usb#vid_2756&pid_0009&mi_06#device#{adb-guid}",
+                @"\\?\usb#vid_1234&pid_0009&mi_03#device#{other-guid}"
+            ]);
+            Require(selected.Length == 1 && selected[0].ProductId == 9 && selected[0].Path.Contains("another-guid"));
+        });
+        test("winusb-factory-registration-delay-is-retryable", () =>
+        {
+            Require(UsbStateRecovery.Transient("工厂 WinUSB 接口未就绪，无法与 ADB 同时访问"));
+            Require(!UsbStateRecovery.Transient("文件传输通道对应的相机发生变化，已停止操作。"));
+            long time = 0; var opened = 0;
+            IUsbCameraLink Open()
+            {
+                if (++opened == 1) throw new StudioException("工厂 WinUSB 接口未就绪，无法与 ADB 同时访问");
+                return new Session(_ => UsbStateRecovery.Normal, () => { });
+            }
+            UsbStateRecovery.Restore(UsbStateRecovery.Normal, Open, _ => { }, _ => { }, () => time, ms => time += ms);
+            Require(opened == 2 && time == 250);
+        });
         test("winusb-native-descriptor-ABI", () =>
         {
             var descriptor = typeof(WinUsbFactory).GetNestedType("InterfaceDescriptor", System.Reflection.BindingFlags.NonPublic)!;
