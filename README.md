@@ -21,11 +21,11 @@ Discussion, research findings and feedback are welcome. Please use [Issues](http
 
 ## ⬇️ 下载 Windows 测试版
 
-### [点击下载：Windows x64 测试包](https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.2.0-preview.2/Hasselblad-Startup-Studio-0.2.0-preview.2-Windows-x64.zip)
+### [点击下载：Windows x64 测试包](https://github.com/radium-wang/hasselblad-startup-studio/releases/download/v0.2.0-preview.3/Hasselblad-Startup-Studio-0.2.0-preview.3-Windows-x64.zip)
 
-**0.2.0-preview.2 · Intel / AMD 64 位 · 预发布测试版**
+**0.2.0-preview.3 · Intel / AMD 64 位 · 预发布测试版**
 
-当前源码包含尚未发布的 Windows 工厂 WinUSB / ADB 共存修复与收尾状态改进。上方下载链接仍是已发布的 preview.2；新源码的只读实机验证、150 项云端离线检查及完整安装/恢复的未验收范围见 [WinUSB 验证摘要](research/WINDOWS_WINUSB.md)。
+此前 preview.2 下载包没有包含 10 月 13 日合入的工厂 WinUSB / ADB 共存修复。preview.3 已将修复打入 Windows 包，并在窗口标题与启动日志显示版本；只读实机证据及完整安装/恢复的未验收范围见 [WinUSB 验证摘要](research/WINDOWS_WINUSB.md)。
 
 本版修复了上一版内置 ADB 监听地址导致的启动失败，并补充真实内置 ADB 的生产启动回归。
 
@@ -34,20 +34,19 @@ Discussion, research findings and feedback are welcome. Please use [Issues](http
 
 完整安装／恢复尚缺 Windows 实机验收；已有验证：
 
-- 已发布的 preview.2：Windows 云端 132 项检查及真实 EXE、原生窗口启动，另通过真实内置 ADB 生产启动回归。
-- 当前源码：[Windows 云端 150 项无相机检查](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38364341343)、包内 ADB 探测、自包含 EXE 打包及原生窗口启动通过。
+- preview.3 源码：[Windows 云端 150 项无相机检查](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38365823264)、包内 ADB 探测、自包含 EXE 打包及原生窗口启动通过；最终 ZIP 另经本地依赖、许可、哈希与隐私检查。
 - 本地 171 项固件离线检查；原安装／恢复脚本的 50 个中断恢复点证据继续适用。
 - 最终安装包依赖、许可与隐私检查。
 
-**已发布的 preview.2 尚未经过真实相机安装／恢复验收；当前源码仅在一台 X2D 上完成只读 USB／ADB 验证，仍保留为测试版。** 普通版和大地版的首次备份保护均已保留。
+**preview.3 尚未经过真实相机完整安装／恢复验收；仅在一台 X2D 上完成只读 USB／ADB 验证，仍保留为测试版。** 普通版和大地版的首次备份保护均已保留。
 
 Windows 云端执行环境为 Windows Server 2025 x64；上述检查不能代替 Windows 11 / 10 用户电脑的驱动和相机验收。
-[发布说明与 SHA-256](https://github.com/radium-wang/hasselblad-startup-studio/releases/tag/v0.2.0-preview.2) · [Windows 使用与驱动说明](research/WINDOWS.md) · [云端测试记录](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38150327577)。
+[发布说明与 SHA-256](https://github.com/radium-wang/hasselblad-startup-studio/releases/tag/v0.2.0-preview.3) · [Windows 使用与驱动说明](research/WINDOWS.md) · [云端测试记录](https://github.com/radium-wang/hasselblad-startup-studio/actions/runs/38365823264)。
 
 ---
 
 为第一代 **X2D 100C / 907X 与 CFV 100C 原厂 4.2.0** 更换灰度开机画面的桌面 App。
-macOS 原生版支持 macOS 13 及以上，Intel 与 Apple Silicon Universal，当前功能版本 **0.1.4**；Windows x64 测试版为 **0.2.0-preview.2**。当前源码使用 [MIT + Commons Clause 1.0](LICENSE)。
+macOS 原生版支持 macOS 13 及以上，Intel 与 Apple Silicon Universal，当前功能版本 **0.1.4**；Windows x64 测试版为 **0.2.0-preview.3**。当前源码使用 [MIT + Commons Clause 1.0](LICENSE)。
 
 导入自己的 PNG／JPEG、选择保留黑边或裁剪、在画布内按原尺寸居中预览，然后通过 USB 安装。
 安装采用 App 独立模式 3，保留原厂普通版／大地版身份和原厂显示键；恢复使用这台相机的首次原厂备份。
