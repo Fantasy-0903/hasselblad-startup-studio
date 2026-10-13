@@ -11,6 +11,11 @@
 - Windows 148 项无硬件检查、原生窗口启动通过；一台 X2D 上工厂接口与 ADB 共存和固定 getprop 只读通信通过。完整安装、换图、恢复及 CFV/大地机仍待实机验收，证据边界见 [WinUSB 验证摘要](research/WINDOWS_WINUSB.md)。
 - 本次修订在 macOS 交叉编译无警告，150 项合成数据／替身离线检查及源码隐私检查通过；新增 Windows 接口类枚举的云端检查，真实不同 GUID 的驱动仍待用户设备验收。
 
+## Documentation update — Community discussion and contributions (2026-10-12)
+
+- Replace fundraising entry points with invitations to discuss findings, open Issues and submit Pull Requests. This is a documentation-only update; published application packages and license terms are unchanged.
+- 将项目入口改为欢迎交流、通过 Issue 反馈问题与建议，以及提交 PR 改进代码、文档和测试；仅更新文档，已发布软件包与许可条款不变。
+
 ## Windows 0.2.0-preview.2 — 2026-10-11
 
 - 修复内置 ADB 使用不受支持的数值 IP 监听地址立即退出的问题；服务端改用 localhost，客户端仍使用同一私有回环端口。
