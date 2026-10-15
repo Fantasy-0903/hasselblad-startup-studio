@@ -10,7 +10,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '0.2.0-preview.3'
+VERSION = '0.3.0-rgb-preview.4'
 
 
 def pe_machine(path):
@@ -29,7 +29,7 @@ def package(args):
     assert f'<InformationalVersion>{VERSION}</InformationalVersion>' in (ROOT / 'windows/Studio.App/Studio.App.csproj').read_text(encoding='utf-8'), 'Package / application version mismatch'
     adapter = json.loads((args.adapter / 'adapter.json').read_text(encoding='utf-8'))
     assert adapter['mode'] == 3 and adapter['originalSHA256'] == 'a0ac02a51d87d08fa61fd0d1e79af15db248af4b5b32603b9483d09f9b7f6217'
-    assert adapter['adapterSHA256'] == 'a2edfe28ad8dbf91ed19fb87526cc6eceb21ceb00a40347ee58e9afaec6929e0'
+    assert adapter['adapterSHA256'] == '768b6f5d53cccbd6db90b053f1614d7de363462c4ed360ee8ffd10c0611d14ef'
     assert len((args.adapter / 'patch.bin').read_bytes()) == sum(p['size'] for p in adapter['patches'])
     env = os.environ.copy()
     env['DOTNET_CLI_TELEMETRY_OPTOUT'] = '1'
@@ -44,6 +44,15 @@ def package(args):
     resources.mkdir()
     for name in ['adapter.json', 'patch.bin']:
         shutil.copyfile(args.adapter / name, resources / name)
+    legacy_hash = 'a2edfe28ad8dbf91ed19fb87526cc6eceb21ceb00a40347ee58e9afaec6929e0'
+    legacy = json.loads((args.legacy_adapter / 'adapter.json').read_text(encoding='utf-8'))
+    assert legacy['adapterSHA256'] == legacy_hash and legacy['originalSHA256'] == adapter['originalSHA256']
+    original_patch = (args.legacy_adapter / 'patch.bin').read_bytes()
+    assert len(original_patch) == sum(p['size'] for p in legacy['patches'])
+    historical = resources / 'legacy' / legacy_hash
+    historical.mkdir(parents=True)
+    for name in ['adapter.json', 'patch.bin']:
+        shutil.copyfile(args.legacy_adapter / name, historical / name)
     (resources / 'bin').mkdir()
     adb_machine = pe_machine(args.adb / 'adb.exe')
     assert adb_machine in (0x14c, 0x8664), 'Unsupported official ADB architecture'
@@ -84,6 +93,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--dotnet', type=Path, required=True)
     p.add_argument('--adapter', type=Path, required=True)
+    p.add_argument('--legacy-adapter', type=Path, required=True)
     p.add_argument('--libusb', type=Path, required=True)
     p.add_argument('--adb', type=Path, required=True)
     p.add_argument('--licenses', type=Path, required=True)

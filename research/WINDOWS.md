@@ -1,6 +1,6 @@
 # Windows 版使用与验证
 
-0.2.0-preview.3，2026-10-13。本版为 Windows x64 测试包，界面与核心已完整移植。
+当前开发版 `0.3.0-rgb-preview.2`，2026-10-15：高清图片自动适配、大区域鼠标裁切、RGB／灰度图片、右下角统一操作按钮及历史灰度版本恢复。尚未进行真实相机安装、恢复或冷启动验收；原公开 preview.3 附件不因本地迭代更新。[RGB 来源与恢复说明](WINDOWS_RGB.md)。
 包内包含 .NET 10 运行时、libusb 与 ADB；用户不需要安装 Python、.NET 或开发工具。
 Windows 11 的 Intel / AMD 64 位电脑是首轮验收目标。Windows 10、ARM 电脑和实际 Windows 的 USB 驱动尚未验收；不支持 Windows 7 / 8。
 
@@ -11,10 +11,9 @@ Windows 11 的 Intel / AMD 64 位电脑是首轮验收目标。Windows 10、ARM 
 支持第一代 X2D 100C 普通 / 大地、907X 与 CFV 100C 标准版，原厂绘图库必须匹配 4.2.0 固定哈希。
 不支持 CFV II 50C、第二代 X2D 或其他固件。
 
-左侧导入单张 PNG / JPEG。应用自动按方向解码、合成透明背景为黑色并转换为 8 位灰度。
-方向校正后的宽度 ≤ 1024、高度 ≤ 768；超过限制请先在外部调整大小。
-“保留黑边”按原尺寸居中；“裁剪”允许框选、移动选框、拖动四角。两种方式都不会放大或拉伸图片。
-中间预览使用 1024 × 768 画布，并按相机的整数坐标居中。
+左侧导入单张高清 PNG / JPEG，支持 16-bit PNG。软件自动校正 EXIF 方向、转换到 sRGB 并生成 1024×768 成品，透明度在黑底合成；RGB 每通道 8-bit，也可选择 8-bit 黑白灰度。原图保持不变，不需要外部压缩。
+“完整图片”保持比例缩小并居中保留黑边，小图不放大。“裁切图片”在中间大区域操作：拖动选框内部移动、四角调整范围、滚轮或左右的缩放按钮改变选框大小。默认选框留有移动空间，成品缩略图在左侧同步更新，导出 PNG 和安装使用同一份 1024×768 成品。
+编辑工作图最长边 4096，输入支持最高 1.28 亿像素、256 MB、单边 32768；超出时明确提示，不强行分配无限内存。最终相机端的尺寸、协议和恢复门禁保持不变。
 
 点击“安装自定义画面”，首次原厂备份必须完整校验后才开始替换。
 可以连续换图，后续换图保留同一份首次备份。
@@ -100,7 +99,7 @@ Windows 包只有通过以上验收后才能标记为正式稳定版。
 dotnet build windows/Studio.Tests/Studio.Tests.csproj -c Release --artifacts-path outputs/windows-build
 dotnet outputs/windows-build/bin/Studio.Tests/release/Studio.Tests.dll . outputs/adapter /path/to/original/eagle-backend.so
 python3 CodeTests/check_windows_transactions.py --resources outputs/adapter --stock /path/to/original/eagle-backend.so
-python3 tools/build_windows.py --dotnet /path/to/dotnet --adapter outputs/adapter --libusb /path/to/libusb-1.0.dll --adb /path/to/platform-tools --licenses /path/to/dependency-licenses --output outputs/Hasselblad-Startup-Studio-Windows-x64
+python3 tools/build_windows.py --dotnet /path/to/dotnet --adapter outputs/rgb-adapter --legacy-adapter outputs/legacy-adapter --libusb /path/to/libusb-1.0.dll --adb /path/to/platform-tools --licenses /path/to/dependency-licenses --output outputs/Hasselblad-Startup-Studio-Windows-x64
 ```
 
 上述测试默认无 USB 访问。Linux / Windows 上可运行 .NET 核心与 headless UI 检查；文件系统 shell 验证的当前命令面向 Mac。
